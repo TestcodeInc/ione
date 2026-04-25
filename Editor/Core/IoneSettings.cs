@@ -104,7 +104,7 @@ namespace Ione.Core
         // request and response to the Unity Console.
         public static bool LogRequests
         {
-            get => EditorPrefs.GetBool(KeyLogRequests, true);
+            get => EditorPrefs.GetBool(KeyLogRequests, false);
             set => EditorPrefs.SetBool(KeyLogRequests, value);
         }
 
