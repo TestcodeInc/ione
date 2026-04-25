@@ -1,0 +1,27 @@
+{
+  "name": "de.testco.ione",
+  "version": "0.5.0",
+  "displayName": "ione",
+  "description": "AI agent that lives inside the Unity Editor. Plug in an Anthropic or OpenAI API key and chat to build scenes, write scripts, generate sprites, and wire animations.",
+  "unity": "2022.3",
+  "author": {
+    "name": "Testcode, Inc.",
+    "email": "help@ione.games",
+    "url": "https://ione.games"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "claude",
+    "anthropic",
+    "gpt",
+    "openai",
+    "editor",
+    "tools",
+    "sprite",
+    "generative"
+  ],
+  "license": "Apache-2.0",
+  "documentationUrl": "https://ione.games",
+  "changelogUrl": "https://github.com/TestcodeInc/ione/releases"
+}

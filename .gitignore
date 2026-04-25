@@ -1,0 +1,77 @@
+# ---------- secrets ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.cer
+
+# ---------- Unity generated (only appear if developed inside a Unity project) ----------
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Asset meta data should only be ignored when the corresponding asset is also ignored
+!/[Aa]ssets/**/*.meta
+
+# Auto-generated VS / Rider / MD project & solution files
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity3D generated meta files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D crash report
+sysinfo.txt
+
+# Builds / packages
+*.apk
+*.aab
+*.ipa
+*.unitypackage
+*.app
+
+# ---------- editors / IDEs ----------
+.vs/
+.vscode/*
+!.vscode/settings.json.example
+.idea/
+.gradle/
+*.swp
+*.swo
+*~
+
+# ---------- macOS ----------
+.DS_Store
+._*
+
+# ---------- Windows ----------
+Thumbs.db
+Desktop.ini
+
+# ---------- misc ----------
+tmp/
+.tmp/
