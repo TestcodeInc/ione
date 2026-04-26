@@ -15,6 +15,19 @@ namespace Ione.Core
         const string TermsUrl = "https://ione.games/terms";
         const string PrivacyUrl = "https://ione.games/privacy";
 
+        // Per-machine flag so the chat window pops open exactly once after
+        // install. delayCall defers past the package import so Unity is idle
+        // when the window appears.
+        const string FirstRunKey = "Ione.FirstRunShown.v1";
+
+        [InitializeOnLoadMethod]
+        static void FirstRunOpenChat()
+        {
+            if (EditorPrefs.GetBool(FirstRunKey, false)) return;
+            EditorPrefs.SetBool(FirstRunKey, true);
+            EditorApplication.delayCall += IoneChatWindow.ShowWindow;
+        }
+
         [MenuItem("Tools/ione/Chat", priority = 0)]
         public static void OpenChat() => IoneChatWindow.ShowWindow();
 
