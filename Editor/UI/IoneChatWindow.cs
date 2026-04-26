@@ -223,11 +223,11 @@ namespace Ione.UI
             switch (m.Role)
             {
                 case ChatRole.User:
-                    DrawBubble("You", m.Text, new Color(0.15f, 0.35f, 0.6f, 0.25f));
+                    DrawBubble("You", m.Text, new Color(0.15f, 0.35f, 0.6f, 0.25f), markdown: false);
                     break;
                 case ChatRole.Assistant:
                     if (!string.IsNullOrEmpty(m.Text))
-                        DrawBubble("ione", m.Text, new Color(0.2f, 0.2f, 0.2f, 0.25f));
+                        DrawBubble("ione", m.Text, new Color(0.2f, 0.2f, 0.2f, 0.25f), markdown: true);
                     if (m.ToolCalls != null)
                         foreach (var tc in m.ToolCalls) DrawToolCall(tc);
                     break;
@@ -238,7 +238,7 @@ namespace Ione.UI
             }
         }
 
-        static void DrawBubble(string author, string text, Color tint)
+        static void DrawBubble(string author, string text, Color tint, bool markdown)
         {
             var prevBg = GUI.backgroundColor;
             GUI.backgroundColor = tint;
@@ -246,11 +246,18 @@ namespace Ione.UI
             {
                 GUI.backgroundColor = prevBg;
                 EditorGUILayout.LabelField(author, EditorStyles.boldLabel);
-                var content = new GUIContent(text ?? "");
-                var width = Mathf.Max(160, EditorGUIUtility.currentViewWidth - 60);
-                var height = EditorStyles.wordWrappedLabel.CalcHeight(content, width);
-                EditorGUILayout.SelectableLabel(text ?? "", EditorStyles.wordWrappedLabel,
-                    GUILayout.Height(height));
+                if (markdown)
+                {
+                    MarkdownRenderer.Draw(text ?? "");
+                }
+                else
+                {
+                    var content = new GUIContent(text ?? "");
+                    var width = Mathf.Max(160, EditorGUIUtility.currentViewWidth - 60);
+                    var height = EditorStyles.wordWrappedLabel.CalcHeight(content, width);
+                    EditorGUILayout.SelectableLabel(text ?? "", EditorStyles.wordWrappedLabel,
+                        GUILayout.Height(height));
+                }
             }
             GUI.backgroundColor = prevBg;
         }
