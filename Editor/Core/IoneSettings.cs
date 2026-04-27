@@ -19,6 +19,8 @@ namespace Ione.Core
         const string KeyAllowSceneSwitching = "Ione.Safety.AllowSceneSwitching";
         const string KeySeenBackupWarning   = "Ione.SeenBackupWarning.v1";
         const string KeyLogRequests         = "Ione.LogRequests";
+        const string KeyHttpBridgeEnabled   = "Ione.HttpBridge.Enabled";
+        const string KeyHttpBridgePort      = "Ione.HttpBridge.Port";
 
         public const string DefaultAnthropicModel = "claude-opus-4-7";
         public const string DefaultOpenAIModel    = "gpt-5.5";
@@ -106,6 +108,23 @@ namespace Ione.Core
         {
             get => EditorPrefs.GetBool(KeyLogRequests, false);
             set => EditorPrefs.SetBool(KeyLogRequests, value);
+        }
+
+        // HTTP bridge: localhost-only loopback so Claude Code (or any
+        // local process) can drive the same ToolRouter the chat window
+        // uses. Off by default - enable per-machine in Settings.
+        public const int DefaultHttpBridgePort = 7707;
+
+        public static bool HttpBridgeEnabled
+        {
+            get => EditorPrefs.GetBool(KeyHttpBridgeEnabled, false);
+            set => EditorPrefs.SetBool(KeyHttpBridgeEnabled, value);
+        }
+
+        public static int HttpBridgePort
+        {
+            get => EditorPrefs.GetInt(KeyHttpBridgePort, DefaultHttpBridgePort);
+            set => EditorPrefs.SetInt(KeyHttpBridgePort, value);
         }
 
         public static bool IsConfigured()

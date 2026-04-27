@@ -42,7 +42,23 @@ namespace Ione.Core
         {
             var provider = IoneSettings.Provider;
             var configured = IoneSettings.IsConfigured();
-            Debug.Log($"[ione] v{Version}, provider={provider}, configured={configured}");
+            var bridge = IoneHttpBridge.IsRunning ? $"on (http://127.0.0.1:{IoneHttpBridge.BoundPort})" : "off";
+            Debug.Log($"[ione] v{Version}, provider={provider}, configured={configured}, bridge={bridge}");
+        }
+
+        [MenuItem("Tools/ione/HTTP Bridge/Start", priority = 30)]
+        public static void StartBridge()
+        {
+            IoneSettings.HttpBridgeEnabled = true;
+            IoneHttpBridge.Start();
+        }
+
+        [MenuItem("Tools/ione/HTTP Bridge/Stop", priority = 31)]
+        public static void StopBridge()
+        {
+            IoneSettings.HttpBridgeEnabled = false;
+            IoneHttpBridge.Stop();
+            Debug.Log("[ione] HTTP bridge stopped.");
         }
 
         [MenuItem("Tools/ione/Join Discord", priority = 100)]

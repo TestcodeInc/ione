@@ -65,6 +65,58 @@ Done. Skip to [First run](#first-run).
 
 REMINDER: back up your project before chatting! This is important [Safety](#safety).
 
+---
+
+## Use with Claude Code
+
+ione also ships a Claude Code skill so you can bridge with Unity from your terminal
+instead of the in-editor chat. The skill talks to the same plugin over a local
+HTTP bridge (loopback, opt-in). The main benefit is its usage falls under your Claude Code usage.
+
+> **No API key required.** Works directly through your Claude Code subscription.
+> You only need a key in ione Settings if you also want to use the **in-editor Chat** window, or if you
+> ask the agent to run `generate_image` (still calls OpenAI directly for
+> sprite generation).
+
+### 1. Turn on the bridge in Unity
+
+`Tools` > `ione` > `HTTP Bridge` > `Start`
+(or flip `HttpBridgeEnabled` in `Tools` > `ione` > `Settings`).
+
+The bridge listens on `127.0.0.1:7707`. Confirm with:
+
+```bash
+curl -sS http://127.0.0.1:7707/
+# {"name":"ione","version":"..."}
+```
+
+### 2. Install the Claude Code skill
+
+Copy `ClaudeSkill/SKILL.md` from this repo into your Claude skills folder:
+
+```bash
+mkdir -p ~/.claude/skills/ione
+curl -sSL https://raw.githubusercontent.com/TestcodeInc/ione/main/ClaudeSkill/SKILL.md \
+  -o ~/.claude/skills/ione/SKILL.md
+```
+
+(Or, if you cloned the repo: `cp ClaudeSkill/SKILL.md ~/.claude/skills/ione/SKILL.md`.)
+
+### 3. Use it
+
+In Claude Code, type `/ione <what you want>`. For example:
+
+```
+/ione build a 2D platformer scene with a player and three platforms
+/ione delete every cube in the active scene
+/ione capture the game view and tell me if the player is centered
+```
+
+Claude reads the live tool schema from the bridge, observes the editor before
+mutating, and verifies its work via `capture_game_view`. The same Safety
+toggles apply — script writes, asset deletion, menu items, play mode, and
+scene switching can be locked down independently.
+
 ### Prompts to try
 
 ```
