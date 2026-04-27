@@ -96,7 +96,7 @@ curl -sS -H "Authorization: Bearer $TOKEN" http://127.0.0.1:7707/
 
 ### 2. Install the Claude Code skill
 
-Copy `ClaudeSkill/SKILL.md` from this repo into your Claude skills folder:
+Copy `ClaudeSkill/SKILL.md` from this repo into your Claude skills folder and restart Claude Code:
 
 ```bash
 mkdir -p ~/.claude/skills/ione
