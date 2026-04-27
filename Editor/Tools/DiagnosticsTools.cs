@@ -46,25 +46,79 @@ namespace Ione.Tools
             while (MainThreadDispatcher.IsCompilingCached && DateTime.UtcNow < deadline)
                 await Task.Delay(100);
             var compiling = MainThreadDispatcher.IsCompilingCached;
-            // Cap at 5 errors / 5 warnings each; this used to ship the entire
-            // compile log (50+ KB repeated each turn) into history forever.
-            const int displayLimit = 5;
-            var errors   = IoneLogCapture.Snapshot(e => e.level == "compile-error",   startSeq, 500);
-            var warnings = IoneLogCapture.Snapshot(e => e.level == "compile-warning", startSeq, 500);
+            // Dedupe errors by message text; cascading errors (e.g. a missing
+            // namespace causing 50 identical "CS0246" hits) collapse to one
+            // entry with a list of locations. Warnings are excluded entirely
+            // since the model rarely needs them and they bloat the response.
+            var errors = IoneLogCapture.Snapshot(e => e.level == "compile-error", startSeq, 500);
             if (!compiling && errors.Count == 0) IoneLogCapture.ClearPersistedCompileErrors();
-            var errOmitted  = Math.Max(0, errors.Count   - displayLimit);
-            var warnOmitted = Math.Max(0, warnings.Count - displayLimit);
-            if (errors.Count   > displayLimit) errors   = errors.GetRange(0, displayLimit);
-            if (warnings.Count > displayLimit) warnings = warnings.GetRange(0, displayLimit);
+            var grouped = GroupByMessage(errors);
             var sb = new StringBuilder("{");
             sb.Append("\"compiling\":").Append(compiling ? "true" : "false");
-            sb.Append(",\"errors\":").Append(ListToJson(errors));
-            if (errOmitted  > 0) sb.Append(",\"errorsOmitted\":").Append(errOmitted);
-            sb.Append(",\"warnings\":").Append(ListToJson(warnings));
-            if (warnOmitted > 0) sb.Append(",\"warningsOmitted\":").Append(warnOmitted);
+            sb.Append(",\"uniqueErrorCount\":").Append(grouped.Count);
+            sb.Append(",\"totalErrorCount\":").Append(errors.Count);
+            sb.Append(",\"errors\":").Append(GroupedToJson(grouped));
             sb.Append(",\"lastSeq\":").Append(IoneLogCapture.LastSeq);
             sb.Append("}");
             return Ok(sb.ToString());
+        }
+
+        struct ErrorGroup
+        {
+            public string Message;
+            public List<(string file, int line)> Locations;
+        }
+
+        static List<ErrorGroup> GroupByMessage(List<LogEntry> errors)
+        {
+            var index = new Dictionary<string, int>(StringComparer.Ordinal);
+            var groups = new List<ErrorGroup>();
+            foreach (var e in errors)
+            {
+                var msg = e.message ?? "";
+                if (!index.TryGetValue(msg, out var i))
+                {
+                    i = groups.Count;
+                    index[msg] = i;
+                    groups.Add(new ErrorGroup { Message = msg, Locations = new List<(string, int)>() });
+                }
+                groups[i].Locations.Add((e.file, e.line));
+            }
+            return groups;
+        }
+
+        static string GroupedToJson(List<ErrorGroup> groups)
+        {
+            const int locationCap = 20;
+            var sb = new StringBuilder("[");
+            for (int i = 0; i < groups.Count; i++)
+            {
+                if (i > 0) sb.Append(",");
+                var g = groups[i];
+                sb.Append("{\"message\":").Append(Json.Str(g.Message));
+                sb.Append(",\"count\":").Append(g.Locations.Count);
+                var emit = Math.Min(g.Locations.Count, locationCap);
+                sb.Append(",\"locations\":[");
+                for (int k = 0; k < emit; k++)
+                {
+                    if (k > 0) sb.Append(",");
+                    var (file, line) = g.Locations[k];
+                    sb.Append("{");
+                    if (!string.IsNullOrEmpty(file)) sb.Append("\"file\":").Append(Json.Str(file));
+                    if (line > 0)
+                    {
+                        if (!string.IsNullOrEmpty(file)) sb.Append(",");
+                        sb.Append("\"line\":").Append(line);
+                    }
+                    sb.Append("}");
+                }
+                sb.Append("]");
+                if (g.Locations.Count > locationCap)
+                    sb.Append(",\"locationsOmitted\":").Append(g.Locations.Count - locationCap);
+                sb.Append("}");
+            }
+            sb.Append("]");
+            return sb.ToString();
         }
 
         // Filesystem-backed listing. AssetDatabase.FindAssets can block for
