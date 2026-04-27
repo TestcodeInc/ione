@@ -83,10 +83,14 @@ HTTP bridge (loopback, opt-in). The main benefit is its usage falls under your C
 `Tools` > `ione` > `HTTP Bridge` > `Start`
 (or flip `HttpBridgeEnabled` in `Tools` > `ione` > `Settings`).
 
-The bridge listens on `127.0.0.1:7707`. Confirm with:
+The bridge listens on `127.0.0.1:7707` (loopback only). On first start it
+generates a bearer token and writes it to `~/.ione/bridge-token` (mode 0600).
+The skill reads it automatically — you don't need to copy it anywhere. To
+sanity-check by hand:
 
 ```bash
-curl -sS http://127.0.0.1:7707/
+TOKEN=$(cat ~/.ione/bridge-token)
+curl -sS -H "Authorization: Bearer $TOKEN" http://127.0.0.1:7707/
 # {"name":"ione","version":"..."}
 ```
 

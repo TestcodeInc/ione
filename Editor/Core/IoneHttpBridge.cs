@@ -51,7 +51,10 @@ namespace Ione.Core
                 cts = new CancellationTokenSource();
                 acceptThread = new Thread(AcceptLoop) { IsBackground = true, Name = "ione-http" };
                 acceptThread.Start();
-                Debug.Log($"[ione] HTTP bridge listening on http://127.0.0.1:{port}");
+                // Prime the token so it gets generated + logged at startup
+                // rather than on the first authenticated request.
+                IoneBridgeToken.Get();
+                Debug.Log($"[ione] HTTP bridge listening on http://127.0.0.1:{port} (token at {IoneBridgeToken.TokenPath})");
             }
             catch (Exception e)
             {
@@ -100,6 +103,17 @@ namespace Ione.Core
                 if (!string.IsNullOrEmpty(origin))
                 {
                     await WriteJson(ctx, 403, "{\"ok\":false,\"error\":\"cross-origin requests are not allowed\"}");
+                    return;
+                }
+
+                // All endpoints require the bearer token. Persisted at
+                // ~/.ione/bridge-token (0600) — local clients read it from
+                // there and send it as Authorization: Bearer. Even the
+                // version probe is gated, so we never disclose plugin
+                // version to unauthenticated callers.
+                if (!IsAuthorized(ctx))
+                {
+                    await WriteJson(ctx, 401, "{\"ok\":false,\"error\":\"missing or invalid bearer token; read ~/.ione/bridge-token\"}");
                     return;
                 }
 
@@ -153,6 +167,27 @@ namespace Ione.Core
                 try { await WriteJson(ctx, 500, "{\"ok\":false,\"error\":" + Json.Str(e.Message) + "}"); }
                 catch { }
             }
+        }
+
+        static bool IsAuthorized(HttpListenerContext ctx)
+        {
+            var header = ctx.Request.Headers["Authorization"];
+            if (string.IsNullOrEmpty(header)) return false;
+            const string prefix = "Bearer ";
+            if (!header.StartsWith(prefix, StringComparison.Ordinal)) return false;
+            var presented = header.Substring(prefix.Length).Trim();
+            var expected = IoneBridgeToken.Get();
+            return ConstantTimeEquals(presented, expected);
+        }
+
+        // Avoid leaking token length / prefix via timing.
+        static bool ConstantTimeEquals(string a, string b)
+        {
+            if (a == null || b == null) return false;
+            if (a.Length != b.Length) return false;
+            int diff = 0;
+            for (int i = 0; i < a.Length; i++) diff |= a[i] ^ b[i];
+            return diff == 0;
         }
 
         static async Task WriteJson(HttpListenerContext ctx, int status, string body)

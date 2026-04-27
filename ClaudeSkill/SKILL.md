@@ -9,24 +9,34 @@ The ione Unity plugin exposes its full editor-tool API over a local HTTP server 
 
 ## Preflight
 
-Before doing anything else, confirm the bridge is reachable:
+Every endpoint requires a bearer token. The bridge generates one on first start and persists it at `~/.ione/bridge-token` (mode 0600). Read it once per session and reuse:
 
 ```bash
-curl -sS http://127.0.0.1:7707/
+TOKEN=$(cat ~/.ione/bridge-token 2>/dev/null)
+```
+
+If `~/.ione/bridge-token` does not exist, the bridge has never been started on this machine — ask the user to enable it from inside Unity:
+**Tools → ione → HTTP Bridge → Start**
+(or set HttpBridgeEnabled in the ione Settings window). Then re-read the file.
+
+Then confirm the bridge is reachable and your token is accepted:
+
+```bash
+curl -sS -H "Authorization: Bearer $TOKEN" http://127.0.0.1:7707/
 ```
 
 Expected: `{"name":"ione","version":"..."}`
 
-If the request fails, the bridge isn't running. Tell the user to enable it from inside Unity:
-**Tools → ione → HTTP Bridge → Start**
-(or set HttpBridgeEnabled in the ione Settings window).
+- `connection refused` → bridge isn't running. Ask the user to start it (see above).
+- `401` → token mismatch. Re-read `~/.ione/bridge-token` (it may have been regenerated) and retry. If it still fails, ask the user to restart the bridge.
+- `200` → ready. Include `-H "Authorization: Bearer $TOKEN"` on every subsequent `/tools` and `/tool` call.
 
 ## Discovering tools
 
 Get the live list of tools (name, description, JSON-schema parameters) — this is authoritative; the set evolves:
 
 ```bash
-curl -sS http://127.0.0.1:7707/tools | jq '.[] | {name, description}'
+curl -sS -H "Authorization: Bearer $TOKEN" http://127.0.0.1:7707/tools | jq '.[] | {name, description}'
 ```
 
 Use `jq '.[] | select(.name=="<tool>")'` to get one tool's full schema before calling it.
@@ -37,6 +47,7 @@ POST `/tool` with `{"name":"<tool>","args":{...}}`. Response is the tool's JSON 
 
 ```bash
 curl -sS -X POST http://127.0.0.1:7707/tool \
+  -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"name":"get_editor_state","args":{}}'
 ```
