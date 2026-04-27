@@ -77,6 +77,60 @@ namespace Ione.UI
             }
         }
 
+        // Replace tool-result bodies > 4 KB in messages older than the
+        // current turn with a one-line stub. Anchors on the last plain user
+        // message so the model still sees its in-flight tool results in
+        // full; only past turns get compacted. Cuts wire size and cache
+        // breaks at most once per user reply (not per assistant turn).
+        const int CompactionThreshold = 4 * 1024;
+        static ChatMessage[] CompactForSend(ChatMessage[] full)
+        {
+            if (full == null || full.Length == 0) return full;
+            int turnStart = 0;
+            for (int i = full.Length - 1; i >= 0; i--)
+            {
+                if (full[i].Role == ChatRole.User && full[i].ToolResults == null)
+                {
+                    turnStart = i;
+                    break;
+                }
+            }
+            var result = new ChatMessage[full.Length];
+            for (int i = 0; i < full.Length; i++)
+            {
+                var m = full[i];
+                if (i >= turnStart || m.Role != ChatRole.Tool || m.ToolResults == null)
+                {
+                    result[i] = m;
+                    continue;
+                }
+                bool needsCopy = false;
+                foreach (var tr in m.ToolResults)
+                    if (tr.Content != null && tr.Content.Length > CompactionThreshold) { needsCopy = true; break; }
+                if (!needsCopy) { result[i] = m; continue; }
+                var newResults = new List<ToolResult>(m.ToolResults.Count);
+                foreach (var tr in m.ToolResults)
+                {
+                    if (tr.Content != null && tr.Content.Length > CompactionThreshold)
+                    {
+                        newResults.Add(new ToolResult
+                        {
+                            ToolCallId = tr.ToolCallId,
+                            Content = "{\"truncated\":true,\"originalBytes\":" + tr.Content.Length + "}",
+                            IsError = tr.IsError,
+                            Images = tr.Images,
+                        });
+                    }
+                    else
+                    {
+                        newResults.Add(tr);
+                    }
+                }
+                result[i] = new ChatMessage { Role = ChatRole.Tool, ToolResults = newResults };
+            }
+            return result;
+        }
+
         // Main-thread only.
         static void SaveHistory()
         {
@@ -407,6 +461,7 @@ namespace Ione.UI
                     RequestRepaint();
                     ChatMessage[] snapshot;
                     lock (historyLock) snapshot = history.ToArray();
+                    snapshot = CompactForSend(snapshot);
                     var resp = await provider.SendAsync(systemPrompt, snapshot, ct).ConfigureAwait(false);
                     lock (historyLock) history.Add(ChatMessage.Assistant(resp.Text, resp.ToolCalls));
                     scrollToBottom = true;

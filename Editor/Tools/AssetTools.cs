@@ -56,15 +56,19 @@ namespace Ione.Tools
             return AssetDatabase.DeleteAsset(NormalizeAssetsPath(path)) ? Ok("{}") : Err($"delete failed: {path}");
         }
 
-        // Read a text asset under Assets/. Capped at 256 KB; over-cap files
-        // return a head snippet with truncated:true.
+        // Read a text asset under Assets/. Capped at 32 KB; over-cap files
+        // return a head snippet with truncated:true. .meta files are import
+        // settings (often huge YAML for binary assets like .psd) and are
+        // refused outright since the agent has no business reading them.
         public static string ReadAsset(ToolRequest r)
         {
             if (string.IsNullOrEmpty(r.path)) return Err("path required");
             var norm = NormalizeAssetsPath(r.path);
+            if (norm.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
+                return Err("refusing to read .meta file (import settings are not useful context). Read the underlying asset instead.");
             var full = Path.Combine(IonePaths.ProjectRoot, norm.Replace('/', Path.DirectorySeparatorChar));
             if (!File.Exists(full)) return Err($"file not found: {norm}");
-            const int cap = 256 * 1024;
+            const int cap = 32 * 1024;
             var info = new FileInfo(full);
             if (info.Length > cap)
             {

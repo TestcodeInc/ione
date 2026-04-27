@@ -46,13 +46,22 @@ namespace Ione.Tools
             while (MainThreadDispatcher.IsCompilingCached && DateTime.UtcNow < deadline)
                 await Task.Delay(100);
             var compiling = MainThreadDispatcher.IsCompilingCached;
-            var errors = IoneLogCapture.Snapshot(e => e.level == "compile-error", startSeq, 500);
+            // Cap at 5 errors / 5 warnings each; this used to ship the entire
+            // compile log (50+ KB repeated each turn) into history forever.
+            const int displayLimit = 5;
+            var errors   = IoneLogCapture.Snapshot(e => e.level == "compile-error",   startSeq, 500);
             var warnings = IoneLogCapture.Snapshot(e => e.level == "compile-warning", startSeq, 500);
             if (!compiling && errors.Count == 0) IoneLogCapture.ClearPersistedCompileErrors();
+            var errOmitted  = Math.Max(0, errors.Count   - displayLimit);
+            var warnOmitted = Math.Max(0, warnings.Count - displayLimit);
+            if (errors.Count   > displayLimit) errors   = errors.GetRange(0, displayLimit);
+            if (warnings.Count > displayLimit) warnings = warnings.GetRange(0, displayLimit);
             var sb = new StringBuilder("{");
             sb.Append("\"compiling\":").Append(compiling ? "true" : "false");
             sb.Append(",\"errors\":").Append(ListToJson(errors));
+            if (errOmitted  > 0) sb.Append(",\"errorsOmitted\":").Append(errOmitted);
             sb.Append(",\"warnings\":").Append(ListToJson(warnings));
+            if (warnOmitted > 0) sb.Append(",\"warningsOmitted\":").Append(warnOmitted);
             sb.Append(",\"lastSeq\":").Append(IoneLogCapture.LastSeq);
             sb.Append("}");
             return Ok(sb.ToString());
