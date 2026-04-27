@@ -466,7 +466,7 @@ namespace Ione.Tools
             });
             t.Add(new ToolDef {
                 Name = "generate_image",
-                Description = "Generate a PNG using the configured image model (default gpt-image-2) and import it under Assets/ as a Sprite with alpha transparency. This is how you produce art - whenever the task calls for a sprite, texture, UI icon, background, tileset piece, character, or any other visual asset, call generate_image instead of asking the user to supply artwork or using a placeholder colored cube. Writes a single PNG per call. Transparent background is always on; describe an explicit background in the prompt if you need opacity. Cost: one image API call per invocation.",
+                Description = "Generate a PNG using the configured image model (default gpt-image-1.5) and import it under Assets/ as a Sprite with alpha transparency. This is how you produce art - whenever the task calls for a sprite, texture, UI icon, background, tileset piece, character, or any other visual asset, call generate_image instead of asking the user to supply artwork or using a placeholder colored cube. Writes a single PNG per call. Transparent background is always on; describe an explicit background in the prompt if you need opacity. Cost: one image API call per invocation.",
                 ParametersJson = @"{
                     ""type"":""object"",
                     ""properties"":{

@@ -22,7 +22,7 @@ namespace Ione.Core
 
         public const string DefaultAnthropicModel = "claude-opus-4-7";
         public const string DefaultOpenAIModel    = "gpt-5.5";
-        public const string DefaultImageModel     = "gpt-image-2";
+        public const string DefaultImageModel     = "gpt-image-1.5";
         public const string DefaultProvider       = "anthropic";
 
         public static string AnthropicKey
