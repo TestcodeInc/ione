@@ -245,7 +245,12 @@ namespace Ione.UI
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 GUI.backgroundColor = prevBg;
-                EditorGUILayout.LabelField(author, EditorStyles.boldLabel);
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField(author, EditorStyles.boldLabel);
+                    if (GUILayout.Button("Copy", EditorStyles.miniButton, GUILayout.Width(48)))
+                        EditorGUIUtility.systemCopyBuffer = text ?? "";
+                }
                 if (markdown)
                 {
                     MarkdownRenderer.Draw(text ?? "");
