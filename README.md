@@ -121,6 +121,10 @@ mutating, and verifies its work via `capture_game_view`. The same Safety
 toggles apply — script writes, asset deletion, menu items, play mode, and
 scene switching can be locked down independently.
 
+> **Keep Unity in focus occasionally.** The bridge runs on Unity's main
+> thread, which only ticks when the editor is in the foreground. If you
+> stay in the terminal for too long, tool calls will time out.
+
 ### Prompts to try
 
 ```
