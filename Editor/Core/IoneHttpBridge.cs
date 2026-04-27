@@ -90,6 +90,19 @@ namespace Ione.Core
                 var path = ctx.Request.Url.AbsolutePath;
                 var method = ctx.Request.HttpMethod;
 
+                // Block browser-originated requests (CSRF defense). Browsers
+                // always set Origin on cross-origin POST/fetch; CLI clients
+                // (curl, Claude Code) do not. We never expect to be called
+                // from a webpage, so any Origin is rejected outright. This
+                // also kills the CORS preflight (OPTIONS) without needing
+                // to handle it explicitly.
+                var origin = ctx.Request.Headers["Origin"];
+                if (!string.IsNullOrEmpty(origin))
+                {
+                    await WriteJson(ctx, 403, "{\"ok\":false,\"error\":\"cross-origin requests are not allowed\"}");
+                    return;
+                }
+
                 if (method == "GET" && path == "/")
                 {
                     await WriteJson(ctx, 200, $"{{\"name\":\"ione\",\"version\":\"{IoneBootstrap.Version}\"}}");
@@ -102,6 +115,19 @@ namespace Ione.Core
                 }
                 if (method == "POST" && path == "/tool")
                 {
+                    // Require application/json. This forces browsers into a
+                    // CORS preflight (which we'd reject via Origin), closing
+                    // the "simple request" CSRF path that text/plain or
+                    // form-encoded bodies would otherwise allow.
+                    var contentType = ctx.Request.ContentType ?? "";
+                    var semi = contentType.IndexOf(';');
+                    var mediaType = (semi >= 0 ? contentType.Substring(0, semi) : contentType).Trim().ToLowerInvariant();
+                    if (mediaType != "application/json")
+                    {
+                        await WriteJson(ctx, 415, "{\"ok\":false,\"error\":\"Content-Type must be application/json\"}");
+                        return;
+                    }
+
                     string body;
                     using (var sr = new StreamReader(ctx.Request.InputStream, ctx.Request.ContentEncoding ?? Encoding.UTF8))
                         body = await sr.ReadToEndAsync().ConfigureAwait(false);
