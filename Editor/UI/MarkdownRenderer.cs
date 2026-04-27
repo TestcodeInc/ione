@@ -11,10 +11,27 @@ namespace Ione.UI
     // bullet (- / *) and numbered (1.) lists, [link](url), and --- rules.
     // Body text loses selectability (rich text requires plain Label), but
     // fenced code blocks stay selectable so users can copy snippets.
+    [InitializeOnLoad]
     internal static class MarkdownRenderer
     {
         static GUIStyle body, h1, h2, h3, listItem, codeBlock, hr;
         static bool stylesReady;
+
+        // Wire link clicks once at editor load. The <a href="..."> tags we
+        // emit during InlineFormat surface here as a HyperLinkClicked event;
+        // the href arrives in args.hyperLinkData.
+        static MarkdownRenderer()
+        {
+            EditorGUI.hyperLinkClicked += OnHyperLinkClicked;
+        }
+
+        static void OnHyperLinkClicked(EditorWindow window, HyperLinkClickedEventArgs args)
+        {
+            if (args.hyperLinkData != null && args.hyperLinkData.TryGetValue("href", out var url))
+            {
+                if (!string.IsNullOrEmpty(url)) Application.OpenURL(url);
+            }
+        }
 
         static void EnsureStyles()
         {
@@ -175,7 +192,8 @@ namespace Ione.UI
             s = LinkRx.Replace(s, m =>
             {
                 var token = "" + protectedSpans.Count + "";
-                protectedSpans.Add("<color=#5cb6ff><u>" + Escape(m.Groups[1].Value) + "</u></color>");
+                var href = m.Groups[2].Value.Replace("\"", "&quot;");
+                protectedSpans.Add("<a href=\"" + href + "\"><color=#5cb6ff><u>" + Escape(m.Groups[1].Value) + "</u></color></a>");
                 return token;
             });
             s = BoldRx.Replace(s, "<b>$1</b>");
